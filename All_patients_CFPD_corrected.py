@@ -25,13 +25,13 @@ import copy
 
 
 def sorbent_chamber(c_ddr, t):
-    #have to convert to mg/ml from mmol/L as thomas eq uses that unit
+    # Convert from mmol/L to mg/ml as thomas eq uses that unit
     c_us = copy.deepcopy(c_ddr)
     for s, solute in enumerate(solutes):
         c_us[s] *= (molecular_weight[solute]/1000)
-    # thomas model
+    # Thomas model
     c_ds = c_us*(1/(1+np.exp(k_Th/f_avg*(q_e*x_AC-c_us*f_avg*t)))).ravel() 
-    # change back to mmol/L
+    # Convert back to mmol/L
     for s, solute in enumerate(solutes):
         c_ds[s] /= (molecular_weight[solute]/1000)
     return np.array(c_ds)
@@ -58,7 +58,7 @@ def objective(mtac, predicted_cd, Cp, L, V, Vr, V_fill, mode):
     '''The objective function needed to be minimised'''
     
     #print(VDR)
-    t = 480
+    t = 480 #min
     
     predicted_cd, DR_conc = rk(t, mtac, predicted_cd, Cp, L, V, Vr, V_fill, mode)
 
@@ -144,7 +144,7 @@ def comdxdt(Cd, t, x,  Cp, L, V,  Vr, V_fill, PS_s, PS_l):
     
     af = 16.18 * (1 - np.exp (-0.00077*V[t]))/13.3187
     
-    delP = delP0 - ((V[t] - (V_fill+Vr))/490)#consider getting Vfill and Vr from the data file also
+    delP = delP0 - ((V[t] - (V_fill+Vr))/490)
     # print(delP, af)
     #peritoneal concentration gradient
    
@@ -191,10 +191,7 @@ solutes = ["Urea", "Creatinine", "Sodium", "Phosphate", "Glucose", "Potassium"]
       
 t = 480 #min
 
-# data = np.zeros((1000,3,6))
-# MTAC = np.zeros((1000,6))
-# fig, ax = plt.subplots(3,2, figsize = (12,18))
-fig, ax = plt.subplots(3, 2, figsize=(12, 10))
+fig, ax = plt.subplots(3, 2, figsize=(12, 10))  #initiate plot for dialysate concentration
 markers = ['o', '^', '*', 's', '>', '<']
 #total Urea removal 
 UR = []
@@ -202,55 +199,57 @@ CR = []
 PhR = []
 PoR = []
 
+#Patient data from the study by Raaijmakers et al. (2010)
 patients_data = [
     {
         'patient_id': 1,
         'Plasma solute concentration': {'Urea': 18, 'Creatinine': 0.365, 'Sodium': 137, 'Phosphate': 2.82, 'Glucose': 3.57, 'Potassium': 5.2}, #mmol/L
         'dialysate solute concentration at time 0': {'Urea': 0, 'Creatinine': 0, 'Sodium': 132, 'Phosphate': 0, 'Glucose': 75.5, 'Potassium': 0}, #mmol/L
         'MTAC': {'Urea': 27.79, 'Creatinine': 45.491,'Sodium': 4.5, 'Phosphate': 10.2, 'Glucose': 16.7, 'Potassium': 12.71},  # List of MTACs for each solute # ml/min
-        'V_fill': 295,  # Dialysis volume for the patient (mL)
-        'Vr': 46.61,  # Dialysis volume for the patient (mL)
-        'V[480]': 399.8,
-        'f_avg': 34.1
+        'V_fill': 295,  # ml
+        'Vr': 46.61,  # ml
+        'V[480]': 399.8, #ml
+        'f_avg': 34.1 #µl/min
     },
     {   'patient_id': 2,
         'Plasma solute concentration': {'Urea': 43.2, 'Creatinine': 0.365, 'Sodium': 117, 'Phosphate': 1.9, 'Glucose': np.random.randint(350, 550) / 100, 'Potassium': 4.2}, #mmol/L
         'dialysate solute concentration at time 0': {'Urea': 0, 'Creatinine': 0, 'Sodium': 132, 'Phosphate': 0, 'Glucose': 75.5, 'Potassium': 0}, #mmol/L
         'MTAC': {'Urea': 31.272, 'Creatinine': 33.514,'Sodium': 4.5, 'Phosphate': 10.2, 'Glucose': 16.7, 'Potassium': 12.71},  # List of MTACs for each solute # ml/min
-        'V_fill': 185,  # Dialysis volume for the patient (mL)
-        'Vr': 29.23,  # Dialysis volume for the patient (mL)
-        'V[480]': 260.5,
-        'f_avg': 21.4
+        'V_fill': 185,  # ml
+        'Vr': 29.23,  # ml
+        'V[480]': 260.5,#ml
+        'f_avg': 21.4 #ml/min
     },
     {   'patient_id': 3,
         'Plasma solute concentration': {'Urea': 21.4, 'Creatinine': 0.372, 'Sodium': 141, 'Phosphate': 2.26, 'Glucose': np.random.randint(350, 550) / 100, 'Potassium': 4.1}, #mmol/L
         'dialysate solute concentration at time 0': {'Urea': 0, 'Creatinine': 0, 'Sodium': 132, 'Phosphate': 0, 'Glucose': 75.5, 'Potassium': 0}, #mmol/L
         'MTAC': {'Urea': 28.498, 'Creatinine': 36.792,'Sodium': 4.5, 'Phosphate': 10.2, 'Glucose': 18.14, 'Potassium': 10.24},  # List of MTACs for each solute # ml/min
-        'V_fill': 200,  # Dialysis volume for the patient (mL)
-        'Vr': 31.6,  # Dialysis volume for the patient (mL)
-        'V[480]': 314.9,
-        'f_avg': 23.1
+        'V_fill': 200,  # ml
+        'Vr': 31.6,  # ml
+        'V[480]': 314.9, #ml
+        'f_avg': 23.1 #ml/min
     },
     {   'patient_id': 4, #Note in the study this is patient 5 since patient 4 was not included in this model due to varying glucose concentrations
         'Plasma solute concentration': {'Urea': 12.5, 'Creatinine': 0.154, 'Sodium': 141, 'Phosphate': 2.97, 'Glucose': np.random.randint(350, 550) / 100, 'Potassium':6.1}, #mmol/L
         'dialysate solute concentration at time 0': {'Urea': 0, 'Creatinine': 0, 'Sodium': 132, 'Phosphate': 0, 'Glucose': 126, 'Potassium': 0}, #mmol/L
         'MTAC': {'Urea': 31.464, 'Creatinine': 113.99,'Sodium': 4.5, 'Phosphate': 10.2, 'Glucose': 18.14, 'Potassium': 10.24},  # List of MTACs for each solute # ml/min
-        'V_fill': 85,  # Dialysis volume for the patient (mL)
-        'Vr': 13.43,  # Dialysis volume for the patient (mL)
-        'V[480]': 99.15,
-        'f_avg': 9.8
+        'V_fill': 85, #ml
+        'Vr': 13.43,#ml
+        'V[480]': 99.15,#ml
+        'f_avg': 9.8 #ml/min
      },
     {   'patient_id': 5, #Note in the study this is patient 6 since patient 4 was not included in this model due to varying glucose concentrations
         'Plasma solute concentration': {'Urea': 20.9, 'Creatinine': 0.168, 'Sodium': 139, 'Phosphate': 1.2, 'Glucose': np.random.randint(350, 550) / 100, 'Potassium':4.2}, #mmol/L
         'dialysate solute concentration at time 0': {'Urea': 0, 'Creatinine': 0, 'Sodium': 132, 'Phosphate': 0, 'Glucose': 214, 'Potassium': 0}, #mmol/L
         'MTAC': {'Urea':37.695, 'Creatinine':137.497,'Sodium': 4.5, 'Phosphate': 10.2, 'Glucose': 18.14, 'Potassium': 10.24},  # List of MTACs for each solute # ml/min
-        'V_fill': 185,  # Dialysis volume for the patient (mL)
-        'Vr': 29.23,  # Dialysis volume for the patient (mL)
-        'V[480]': 251.7,
-        'f_avg': 21.4
+        'V_fill': 185, #ml
+        'Vr': 29.23,  #ml
+        'V[480]': 251.7,#ml
+        'f_avg': 21.4 #ml/min
      }
-    # Add data for other patients here
 ]
+
+#Integrate patient data as variables
 for patient in patients_data:
     V = np.zeros(481)
     V_fill = patient['V_fill']
@@ -284,19 +283,16 @@ for patient in patients_data:
     for j, mode in enumerate(modes):
         
         k_Th = np.array([0, 0, 1.758, 1994, 0.160, 1295]) #from in vitro experiments in pigs
-        q_e = np.array([0, 0, 0.053, 8.408e-18, 49.04, 0])
-        #f_avg = 34.1
+        q_e = np.array([0, 0, 0.053, 8.408e-18, 49.04, 0]) #from in vitro experiments in pigs, there is no data for urea and creatinine so their absorption was assumed zero
         x_AC = 300
         
-        
-        f_avg = int(mode.split('-')[1])
+        f_avg=patient['f_avg'] #flowrate ml/min 
     
         VDR = 10000 #10 L
         
         if 'V' in mode.split('-'):
             VDR = int(mode.split('-')[-1])*1000
         
-        #mtac = np.array(['Urea', 'Creatinine', 'Sodium', 'Phosphate', 'Glucose', 'Potassium'])
         mtac= np.array([urea, crea, sod, phos, gluc, pot])
         MTAC = mtac
         
@@ -352,6 +348,7 @@ for patient in patients_data:
         PoR.append((V[t]*predicted_cd.loc[t-1, 'Potassium'] + VDR * DR_conc[t-1,5])/1000)
         
         
+        #Plot dialysate concentrations over time
         #urea
     
         ax[0,0].plot(np.arange(t),predicted_cd['Urea']/cp.iloc[0,0], marker = markers[j], markevery = 40)
@@ -396,7 +393,7 @@ for patient in patients_data:
         fig.legend(loc='upper right', fontsize='x-small')
         fig.supxlabel("Time (min)")
         fig.supylabel("Dialysate/Plasma concentration")
-        plt.suptitle("Predictions of dialysate concentration")
+        plt.suptitle("Predictions of Dialysate/Plasma Concentration")
         plt.subplots_adjust(top=0.9,
                             bottom=0.1,
                             left=0.09,
@@ -413,14 +410,15 @@ clearances_array = np.array([UR, CR, PhR, PoR])
 print(clearances_array)
 reshaped_clearances_array = clearances_array.reshape(4, -1, 4) #mode, patients, solutes
 
-
-
 #%%
-#Molecular weights
-#molecular_weights = {'Urea': 60.056,  # Molecular weight in g/mol
-                    # 'Creatinine': 113.12,  
-                    # 'Phosphate': 94.971,
-                    # 'Potassium':39.0983} 
+#convert clearance data to mg/min so it could be compared to experimental data
+#Calculations to compare it to SAPD data
+#to get the clearance from the model to ml/min
+#→ elimination in mol to mg by multiplying by the molar mass for the solutes &1000
+#→ elimination in mg dividing by the total time, 480 min
+#→ calculate clearance in mg/min
+#→ divide by the concentration
+#→ calculate the other clearance to ml/min as well
 
 UR_array=np.array([UR])
 CR_array=np.array([CR])
@@ -467,7 +465,8 @@ Clearance_for_comparison_sp={
     }
 
 #%%
-#Experimental data
+# Experimental data
+# Converting from ml/min to mmol
 
 UR_array_e=np.array([4.194797688, 3.079768786, 3.028901734, 1.513294798, 3.614450867])
 CR_array_e=np.array([6.138728324,	3.143930636, 3.630057803, 3.852023121, 8.961271676])
@@ -504,7 +503,7 @@ mean_UR_e = np.mean(UR_values_e, axis=0)
 mean_CR_e = np.mean(CR_values_e, axis=0)
 
 
-#Standard deviationo 
+#Standard deviation
 std_UR_e= np.std(UR_values_e, axis=0)
 std_CR_e = np.std(CR_values_e, axis=0)
 
@@ -526,7 +525,7 @@ mean_UR_modes = np.mean(UR_values, axis=0)
 mean_CR_modes = np.mean(CR_values, axis=0)
 
 
-#Standard deviationo 
+#Standard deviation
 std_UR_modes= np.std(UR_values, axis=0)
 std_CR_modes = np.std(CR_values, axis=0)
 
@@ -547,8 +546,9 @@ std_UR=[std_UR_e,std_UR_modes]
 std_CR=[std_CR_e, std_CR_modes]
 
 #%%
+#Plot experimental and predicted solute clearance
 # Plot mean values with error bars
-fig, ax = plt.subplots(1,2, figsize=(8,6) ) #sharey=true if I want comparable axis for each solute 
+fig, ax = plt.subplots(1,2, figsize=(8,6))  
 
 for i, (mean_values, std_values, solute_title) in enumerate(zip([mean_UR, mean_CR],[std_UR, std_CR], ['Urea','Creatinine'])):
                                                   
@@ -561,13 +561,7 @@ for i, (mean_values, std_values, solute_title) in enumerate(zip([mean_UR, mean_C
     fig.supylabel('Total solute removal (mmol)')
     ax[0].set_title('Urea')
     ax[1].set_title('Creatinine')
-    #ax[i].legend(data_type)
-  
     
 plt.suptitle('Experimental VS Predicted Mean Total Solute Removal')
 plt.tight_layout()
 plt.show()
-
-
-
-
